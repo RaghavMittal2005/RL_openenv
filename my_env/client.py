@@ -11,7 +11,9 @@ This module provides the client for connecting to a Snake Environment server
 via WebSocket for persistent sessions.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from .models import SnakeAction, SnakeObservation
 
 # Support both in-repo and standalone imports
 try:
@@ -19,26 +21,22 @@ try:
     from openenv.core.client_types import StepResult
     from openenv.core.env_client import EnvClient
     from openenv.core.env_server.types import State
+    SnakeEnvBase = EnvClient[SnakeAction, SnakeObservation, State]
 except ImportError:
     try:
         # Try older module structure
         from openenv.client_types import StepResult
         from openenv.env_client import EnvClient
         from openenv.env_server.types import State
+        SnakeEnvBase = EnvClient[SnakeAction, SnakeObservation, State]
     except ImportError:
-        # Fallback - define minimal classes
-        from typing import Any, Generic, TypeVar
+        # Fallback - define minimal base class
         from pydantic import BaseModel
-        
-        T = TypeVar('T')
-        StepResult = BaseModel
-        State = BaseModel
-        EnvClient = object
-
-from .models import SnakeAction, SnakeObservation
+        class SnakeEnvBase(BaseModel):
+            pass
 
 
-class SnakeEnv(EnvClient[SnakeAction, SnakeObservation, State]):
+class SnakeEnv(SnakeEnvBase):
     """
     HTTP client for the Snake Environment.
 
