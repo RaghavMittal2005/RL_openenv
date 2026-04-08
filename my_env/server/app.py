@@ -30,10 +30,13 @@ Usage:
 
 try:
     from openenv.core.env_server.http_server import create_app
-except Exception as e:  # pragma: no cover
-    raise ImportError(
-        "openenv is required for the web interface. Install dependencies with '\n    uv sync\n'"
-    ) from e
+except Exception:
+    try:
+        from openenv.env_server.http_server import create_app
+    except Exception as e:  # pragma: no cover
+        raise ImportError(
+            "openenv is required for the web interface. Install dependencies with 'pip install openenv'"
+        ) from e
 
 # Resolve model/environment imports in all execution contexts (module, script, uv run, python -m)
 try:

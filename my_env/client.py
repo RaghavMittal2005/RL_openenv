@@ -15,19 +15,27 @@ from typing import Any, Dict
 
 # Support both in-repo and standalone imports
 try:
-    # In-repo imports (when running from OpenEnv repository)
+    # Try newer module structure first
     from openenv.core.client_types import StepResult
     from openenv.core.env_client import EnvClient
     from openenv.core.env_server.types import State
-
-    from .models import SnakeAction, SnakeObservation
 except ImportError:
-    from .models import SnakeAction, SnakeObservation
+    try:
+        # Try older module structure
+        from openenv.client_types import StepResult
+        from openenv.env_client import EnvClient
+        from openenv.env_server.types import State
+    except ImportError:
+        # Fallback - define minimal classes
+        from typing import Any, Generic, TypeVar
+        from pydantic import BaseModel
+        
+        T = TypeVar('T')
+        StepResult = BaseModel
+        State = BaseModel
+        EnvClient = object
 
-    # Standalone imports (when environment is standalone with openenv from pip)
-    from openenv.core.client_types import StepResult
-    from openenv.core.env_client import EnvClient
-    from openenv.core.env_server.types import State
+from .models import SnakeAction, SnakeObservation
 
 
 class SnakeEnv(EnvClient[SnakeAction, SnakeObservation, State]):

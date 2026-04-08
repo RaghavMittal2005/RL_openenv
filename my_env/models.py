@@ -15,8 +15,17 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
-# Import from openenv package
-from openenv.core.env_server.types import Action, Observation
+# Try multiple import paths for different openenv versions
+try:
+    from openenv.core.env_server.types import Action, Observation
+except ImportError:
+    try:
+        from openenv.env_server.types import Action, Observation
+    except ImportError:
+        # Fallback for older versions - define simple base classes
+        from pydantic import BaseModel
+        Action = BaseModel
+        Observation = BaseModel
 
 
 class SnakeAction(Action):
