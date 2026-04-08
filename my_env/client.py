@@ -30,8 +30,18 @@ except ImportError:
         from openenv.env_server.types import State
         SnakeEnvBase = EnvClient[SnakeAction, SnakeObservation, State]
     except ImportError:
-        # Fallback - define minimal base class
+        # Fallback - define minimal classes
         from pydantic import BaseModel
+        
+        class StepResult(BaseModel):
+            observation: SnakeObservation
+            reward: float
+            done: bool
+        
+        class State(BaseModel):
+            episode_id: str = None
+            step_count: int = 0
+        
         class SnakeEnvBase(BaseModel):
             pass
 
