@@ -22,7 +22,7 @@ try:
 
     from .models import SnakeAction, SnakeObservation
 except ImportError:
-    from models import SnakeAction, SnakeObservation
+    from .models import SnakeAction, SnakeObservation
 
     # Standalone imports (when environment is standalone with openenv from pip)
     from openenv.core.client_types import StepResult
