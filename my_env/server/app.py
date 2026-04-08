@@ -52,22 +52,40 @@ except Exception:
                     allow_headers=["*"],
                 )
                 
-                # Create environment instance
-                env = env_class()
+                # Store for lazy initialization
+                env_instances = {}
                 
                 @app.post("/reset")
                 def reset():
-                    obs = env.reset()
-                    return {"observation": obs.dict() if hasattr(obs, 'dict') else obs}
+                    try:
+                        # Create new environment for this session
+                        env = env_class()
+                        obs = env.reset()
+                        # Store environment instance
+                        env_instances["current"] = env
+                        result = obs.dict() if hasattr(obs, 'dict') else obs
+                        return {"observation": result}
+                    except Exception as e:
+                        print(f"Error in /reset: {e}")
+                        return {"error": str(e)}, 500
                 
                 @app.post("/step")
                 def step(action: action_class):
-                    obs, reward, done = env.step(action)
-                    return {
-                        "observation": obs.dict() if hasattr(obs, 'dict') else obs,
-                        "reward": float(reward),
-                        "done": bool(done)
-                    }
+                    try:
+                        env = env_instances.get("current")
+                        if not env:
+                            return {"error": "Environment not initialized, call /reset first"}, 400
+                        
+                        obs, reward, done = env.step(action)
+                        result = obs.dict() if hasattr(obs, 'dict') else obs
+                        return {
+                            "observation": result,
+                            "reward": float(reward),
+                            "done": bool(done)
+                        }
+                    except Exception as e:
+                        print(f"Error in /step: {e}")
+                        return {"error": str(e)}, 500
                 
                 @app.get("/state")
                 def state():
@@ -75,10 +93,14 @@ except Exception:
                 
                 @app.get("/schema")
                 def schema():
-                    return {
-                        "action_schema": action_class.schema(),
-                        "observation_schema": observation_class.schema()
-                    }
+                    try:
+                        return {
+                            "action_schema": action_class.schema() if hasattr(action_class, 'schema') else {},
+                            "observation_schema": observation_class.schema() if hasattr(observation_class, 'schema') else {}
+                        }
+                    except Exception as e:
+                        print(f"Error in /schema: {e}")
+                        return {"error": str(e)}, 500
                 
                 return app
         except Exception as e:
