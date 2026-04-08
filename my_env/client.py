@@ -85,15 +85,15 @@ class SnakeEnv(SnakeEnvBase):
             "action": action.action,
         }
 
-    def _parse_result(self, payload: Dict) -> StepResult[SnakeObservation]:
+    def _parse_result(self, payload: Dict) -> Dict[str, Any]:
         """
-        Parse server response into StepResult[SnakeObservation].
+        Parse server response into StepResult format.
 
         Args:
             payload: JSON response from server
 
         Returns:
-            StepResult with SnakeObservation
+            Dictionary with observation, reward, and done fields
         """
         obs_data = payload.get("observation", {})
         observation = SnakeObservation(
