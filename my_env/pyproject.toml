@@ -14,8 +14,8 @@ version = "0.1.0"
 description = "My Env environment for OpenEnv"
 requires-python = ">=3.10"
 dependencies = [
-    # Core OpenEnv runtime (provides FastAPI server + HTTP client types)
-    "openenv>=0.2.0",
+    # Core OpenEnv runtime (available versions: 0.1.0 to 0.1.13)
+    "openenv>=0.1.13",
     "fastapi>=0.115.0",
     "uvicorn>=0.24.0",
 ]
