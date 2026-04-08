@@ -33,10 +33,58 @@ try:
 except Exception:
     try:
         from openenv.env_server.http_server import create_app
-    except Exception as e:  # pragma: no cover
-        raise ImportError(
-            "openenv is required for the web interface. Install dependencies with 'pip install openenv'"
-        ) from e
+    except Exception:
+        try:
+            # Try importing just the openenv package to verify it's installed
+            import openenv
+            print("openenv is installed but create_app import failed, creating minimal FastAPI app")
+            from fastapi import FastAPI
+            from fastapi.middleware.cors import CORSMiddleware
+            
+            def create_app(env_class, action_class, observation_class, env_name="env", **kwargs):
+                """Minimal create_app implementation"""
+                app = FastAPI(title=env_name)
+                app.add_middleware(
+                    CORSMiddleware,
+                    allow_origins=["*"],
+                    allow_credentials=True,
+                    allow_methods=["*"],
+                    allow_headers=["*"],
+                )
+                
+                # Create environment instance
+                env = env_class()
+                
+                @app.post("/reset")
+                def reset():
+                    obs = env.reset()
+                    return {"observation": obs.dict() if hasattr(obs, 'dict') else obs}
+                
+                @app.post("/step")
+                def step(action: action_class):
+                    obs, reward, done = env.step(action)
+                    return {
+                        "observation": obs.dict() if hasattr(obs, 'dict') else obs,
+                        "reward": float(reward),
+                        "done": bool(done)
+                    }
+                
+                @app.get("/state")
+                def state():
+                    return {"status": "running"}
+                
+                @app.get("/schema")
+                def schema():
+                    return {
+                        "action_schema": action_class.schema(),
+                        "observation_schema": observation_class.schema()
+                    }
+                
+                return app
+        except Exception as e:
+            raise ImportError(
+                f"Failed to import or create FastAPI app: {e}"
+            ) from e
 
 # Resolve model/environment imports in all execution contexts (module, script, uv run, python -m)
 try:
