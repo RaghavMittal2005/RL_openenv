@@ -30,14 +30,19 @@ Usage:
 
 try:
     from openenv.core.env_server.http_server import create_app
-except Exception:
+    print("Successfully imported create_app from openenv.core.env_server.http_server")
+except Exception as e:
+    print(f"Failed to import from openenv.core.env_server.http_server: {type(e).__name__}: {e}")
     try:
         from openenv.env_server.http_server import create_app
-    except Exception:
+        print("Successfully imported create_app from openenv.env_server.http_server")
+    except Exception as e2:
+        print(f"Failed to import from openenv.env_server.http_server: {type(e2).__name__}: {e2}")
         try:
             # Try importing just the openenv package to verify it's installed
             import openenv
-            print("openenv is installed but create_app import failed, creating minimal FastAPI app")
+            print(f"openenv is installed at: {openenv.__file__}, version: {getattr(openenv, '__version__', 'unknown')}")
+            print("create_app import failed, creating minimal FastAPI app")
             from fastapi import FastAPI
             from fastapi.middleware.cors import CORSMiddleware
             from typing import Dict, Any
