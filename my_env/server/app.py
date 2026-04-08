@@ -40,6 +40,8 @@ except Exception:
             print("openenv is installed but create_app import failed, creating minimal FastAPI app")
             from fastapi import FastAPI
             from fastapi.middleware.cors import CORSMiddleware
+            from typing import Dict, Any
+            from pydantic import BaseModel
             
             def create_app(env_class, action_class, observation_class, env_name="env", **kwargs):
                 """Minimal create_app implementation"""
@@ -55,6 +57,16 @@ except Exception:
                 # Store for lazy initialization
                 env_instances = {}
                 
+                def _to_dict(obj: Any) -> Dict[str, Any]:
+                    """Convert object to dict, handling both Pydantic v1 and v2."""
+                    if hasattr(obj, 'model_dump'):
+                        return obj.model_dump()
+                    elif hasattr(obj, 'dict'):
+                        return obj.dict()
+                    elif isinstance(obj, dict):
+                        return obj
+                    return {"data": str(obj)}
+                
                 @app.post("/reset")
                 def reset():
                     try:
@@ -63,43 +75,80 @@ except Exception:
                         obs = env.reset()
                         # Store environment instance
                         env_instances["current"] = env
-                        result = obs.dict() if hasattr(obs, 'dict') else obs
+                        result = _to_dict(obs)
                         return {"observation": result}
                     except Exception as e:
+                        import traceback
                         print(f"Error in /reset: {e}")
+                        print(traceback.format_exc())
                         return {"error": str(e)}, 500
                 
                 @app.post("/step")
-                def step(action: action_class):
+                def step(action: Dict[str, Any]):
                     try:
                         env = env_instances.get("current")
                         if not env:
                             return {"error": "Environment not initialized, call /reset first"}, 400
                         
+                        # Convert dict to action class instance
+                        if isinstance(action, dict) and not isinstance(action, action_class):
+                            action = action_class(**action)
+                        
                         obs, reward, done = env.step(action)
-                        result = obs.dict() if hasattr(obs, 'dict') else obs
+                        result = _to_dict(obs)
                         return {
                             "observation": result,
                             "reward": float(reward),
                             "done": bool(done)
                         }
                     except Exception as e:
+                        import traceback
                         print(f"Error in /step: {e}")
+                        print(traceback.format_exc())
                         return {"error": str(e)}, 500
                 
                 @app.get("/state")
                 def state():
-                    return {"status": "running"}
+                    try:
+                        env = env_instances.get("current")
+                        if not env:
+                            return {"error": "Environment not initialized, call /reset first"}, 400
+                        
+                        env_state = env.state
+                        return {
+                            "episode_id": str(env_state.episode_id),
+                            "step_count": env_state.step_count
+                        }
+                    except Exception as e:
+                        import traceback
+                        print(f"Error in /state: {e}")
+                        print(traceback.format_exc())
+                        return {"error": str(e)}, 500
                 
                 @app.get("/schema")
                 def schema():
                     try:
+                        action_schema = {}
+                        obs_schema = {}
+                        
+                        if hasattr(action_class, 'model_json_schema'):
+                            action_schema = action_class.model_json_schema()
+                        elif hasattr(action_class, 'schema'):
+                            action_schema = action_class.schema()
+                        
+                        if hasattr(observation_class, 'model_json_schema'):
+                            obs_schema = observation_class.model_json_schema()
+                        elif hasattr(observation_class, 'schema'):
+                            obs_schema = observation_class.schema()
+                        
                         return {
-                            "action_schema": action_class.schema() if hasattr(action_class, 'schema') else {},
-                            "observation_schema": observation_class.schema() if hasattr(observation_class, 'schema') else {}
+                            "action_schema": action_schema,
+                            "observation_schema": obs_schema
                         }
                     except Exception as e:
+                        import traceback
                         print(f"Error in /schema: {e}")
+                        print(traceback.format_exc())
                         return {"error": str(e)}, 500
                 
                 return app
