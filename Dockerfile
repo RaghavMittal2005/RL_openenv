@@ -12,7 +12,7 @@ ENV PATH="/root/.local/bin:$PATH"
 COPY my_env/pyproject.toml /app/
 COPY my_env/*.py /app/my_env/
 COPY my_env/server/ /app/my_env/server/
-
+ENV ENABLE_WEB_INTERFACE=true
 # Install dependencies using uv
 RUN uv sync --no-editable
 
